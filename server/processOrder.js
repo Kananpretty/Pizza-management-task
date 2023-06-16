@@ -1,8 +1,11 @@
 let doughWorkers = 0;
 let toppingWorkersCount = 3;
 let toppingWorkerCapacity = 2;
+let ovenProcessor = 0;
 let servers = 0;
-let orders = require("./order");
+
+const { getOrder, getOrders } = require("./mongodb/getOrders.js");
+const updateOrder = require("./mongodb/updateOrder.js");
 let wsCurrent;
 
 function delay(ms) {
@@ -71,9 +74,21 @@ async function toppingChefPreparation(order) {
 }
 
 async function cookPizza(order) {
+  if (ovenProcessor >= 1) {
+    await new Promise((resolve) => {
+      const interval = setInterval(() => {
+        if (ovenProcessor < 1) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 100);
+    });
+  }
+
+  ovenProcessor++;
   updateOrderStatus(order, "Oven");
   await delay(10000);
-  order.timeTaken = Date.now();
+  ovenProcessor--;
 }
 
 async function servePizza(order) {
@@ -92,25 +107,27 @@ async function servePizza(order) {
 
   updateOrderStatus(order, "Serving");
   await delay(5000);
-  order.timeTaken = Date.now();
 
   servers--;
 }
 
 async function processOrders(order, wsRef) {
+  console.log("processOrders");
   wsCurrent = wsRef;
   await doughChefPreparation(order);
   await toppingChefPreparation(order);
   await cookPizza(order);
   await servePizza(order);
   updateOrderStatus(order, "Done");
-  console.log(`Order ${order.id} is complete`);
+  console.log(`Order ${order.orderId} is complete`);
 }
 
-updateOrderStatus = (order, statusTobeUpdated) => {
-  const orderTobeUpdated = orders.filter((ord) => order.id === ord.id);
-  orderTobeUpdated[0].status = statusTobeUpdated;
-  wsCurrent.send(JSON.stringify({ message: "order_updated", orders }));
+const updateOrderStatus = async (order, status) => {
+  const orderTobeUpdated = await getOrder(order.orderId);
+  updateOrder(orderTobeUpdated, status);
+  const allOrders = await getOrders();
+  console.log(typeof allOrders);
+  wsCurrent.send(JSON.stringify({ message: "order_updated", allOrders }));
 };
 
 module.exports = processOrders;

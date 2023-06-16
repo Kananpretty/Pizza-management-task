@@ -11,6 +11,7 @@ import {
 
 const OrderList = (props) => {
   const orderData = props.data;
+  console.log(props);
   return (
     <div style={{ padding: "10px" }}>
       <TableContainer component={Paper} variant="outlined">

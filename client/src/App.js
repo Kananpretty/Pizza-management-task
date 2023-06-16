@@ -39,7 +39,8 @@ function App() {
 
     websocketObj.current.onmessage = (message) => {
       const data = JSON.parse(message?.data);
-      setOrders(data.orders);
+      console.log(data.allOrders);
+      setOrders(data.allOrders);
     };
   }, [websocketObj]);
 
