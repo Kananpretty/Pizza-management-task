@@ -1,116 +1,97 @@
+const orders = require("./order");
+
 let doughWorkers = 0;
-let toppingWorkersCount = 3;
-let toppingWorkerCapacity = 2;
-let servers = 0;
-let orders = require("./order");
-let wsCurrent;
+let toppingWorkersAvailable = 3;
+const toppingWorkerCapacity = 2;
+let serversAvailable = 0;
+
+let wsCurrent = null;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// --- Dough Chef ---
 async function doughChefPreparation(order) {
-  if (doughWorkers >= 2) {
-    await new Promise((resolve) => {
-      const interval = setInterval(() => {
-        if (doughWorkers < 2) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
-    });
+  while (doughWorkers >= 2) {
+    await delay(100); // wait for a free dough worker
   }
 
   doughWorkers++;
   updateOrderStatus(order, "Dough Chef");
   await delay(7000);
-
   doughWorkers--;
 }
 
+// --- Topping Chef ---
 async function toppingChefPreparation(order) {
   const toppings = order.pizzaToppings;
   const batches = [];
-  let currentBatch = [];
 
-  for (const topping of toppings) {
-    currentBatch.push(topping);
-
-    if (currentBatch.length === toppingWorkerCapacity) {
-      batches.push(currentBatch);
-      currentBatch = [];
-    }
+  for (let i = 0; i < toppings.length; i += toppingWorkerCapacity) {
+    batches.push(toppings.slice(i, i + toppingWorkerCapacity));
   }
 
-  if (currentBatch.length > 0) {
-    batches.push(currentBatch);
-  }
   for (const batch of batches) {
-    if (toppingWorkersCount <= 0) {
-      await new Promise((resolve) => {
-        const interval = setInterval(() => {
-          if (toppingWorkersCount > 0) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 100);
-      });
+    while (toppingWorkersAvailable <= 0) {
+      await delay(100); // wait for a free topping worker
     }
 
-    toppingWorkersCount--;
+    toppingWorkersAvailable--;
 
     await Promise.all(
-      batch.map(async (topping) => {
+      batch.map(async () => {
         updateOrderStatus(order, "Topping Chef");
         await delay(4000);
       })
     );
 
-    toppingWorkersCount++;
+    toppingWorkersAvailable++;
   }
 }
 
+// --- Oven ---
 async function cookPizza(order) {
   updateOrderStatus(order, "Oven");
   await delay(10000);
   order.timeTaken = Date.now();
 }
 
+// --- Serving ---
 async function servePizza(order) {
-  if (servers >= 2) {
-    await new Promise((resolve) => {
-      const interval = setInterval(() => {
-        if (servers < 2) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
-    });
+  while (serversAvailable >= 2) {
+    await delay(100); // wait for a free server
   }
 
-  servers++;
-
+  serversAvailable++;
   updateOrderStatus(order, "Serving");
   await delay(5000);
-  order.timeTaken = Date.now();
-
-  servers--;
+  serversAvailable--;
 }
 
+// --- Update status & notify client ---
+function updateOrderStatus(order, status) {
+  const targetOrder = orders.find((o) => o.id === order.id);
+  if (!targetOrder) return;
+
+  targetOrder.status = status;
+
+  if (wsCurrent?.readyState === 1) {
+    wsCurrent.send(JSON.stringify({ message: "order_updated", orders }));
+  }
+}
+
+// --- Main process ---
 async function processOrders(order, wsRef) {
   wsCurrent = wsRef;
+
   await doughChefPreparation(order);
   await toppingChefPreparation(order);
   await cookPizza(order);
   await servePizza(order);
+
   updateOrderStatus(order, "Done");
   console.log(`Order ${order.id} is complete`);
 }
-
-updateOrderStatus = (order, statusTobeUpdated) => {
-  const orderTobeUpdated = orders.filter((ord) => order.id === ord.id);
-  orderTobeUpdated[0].status = statusTobeUpdated;
-  wsCurrent.send(JSON.stringify({ message: "order_updated", orders }));
-};
 
 module.exports = processOrders;

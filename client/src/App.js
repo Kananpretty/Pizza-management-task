@@ -1,61 +1,73 @@
-import OrderHeader from "./components/OrderHeader";
 import { useRef, useEffect, useState } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import OrderHeader from "./components/OrderHeader";
 import OrderForm from "./components/OrderForm";
 import OrderList from "./components/OrderList";
 import OrderHome from "./components/OrderHome";
+
 import "./App.css";
 
 function App() {
-  const websocketObj = useRef();
+  const websocketRef = useRef(null);
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    console.log("opening Socket");
-    websocketObj.current = new WebSocket("ws://localhost:8080");
-    websocketObj.current.onopen = (event) => {
+    console.log("Opening WebSocket");
+
+    const ws = new WebSocket("ws://localhost:8080");
+    websocketRef.current = ws;
+
+    const handleOpen = () => {
       console.log("Connected");
-      const newOrder = { message: "All_Orders" };
-      websocketObj.current.send(JSON.stringify(newOrder));
+      ws.send(JSON.stringify({ message: "All_Orders" }));
     };
 
-    websocketObj.current.onclose = (event) => {
+    const handleMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setOrders(data.orders ?? []);
+      } catch (err) {
+        console.error("Invalid WS message", err);
+      }
+    };
+
+    const handleClose = () => {
       console.log("Disconnected");
     };
 
+    ws.addEventListener("open", handleOpen);
+    ws.addEventListener("message", handleMessage);
+    ws.addEventListener("close", handleClose);
+
     return () => {
-      websocketObj.current.close();
-      setOrders([]);
+      ws.removeEventListener("open", handleOpen);
+      ws.removeEventListener("message", handleMessage);
+      ws.removeEventListener("close", handleClose);
+
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
+        ws.close();
+      }
     };
   }, []);
 
-  useEffect(() => {
-    if (!websocketObj.current && websocketObj.current.readyState !== 1) return;
-
-    if (orders.length === 0 && websocketObj.current.readyState === 1) {
-      const newOrder = { message: "All_Orders" };
-      websocketObj.current.send(JSON.stringify(newOrder));
-    }
-
-    websocketObj.current.onmessage = (message) => {
-      const data = JSON.parse(message?.data);
-      setOrders(data.orders);
-    };
-  }, [websocketObj]);
-
   return (
     <Router>
-      <div>
-        <OrderHeader />
-        <Routes>
-          <Route exact path="/" element={<OrderHome />} />
-          <Route
-            path="/createOrder"
-            element={<OrderForm wscontext={websocketObj.current} />}
-          />
-          <Route path="/orderList" element={<OrderList data={orders} />} />
-        </Routes>
-      </div>
+      <OrderHeader />
+
+      <Routes>
+        <Route path="/" element={<OrderHome />} />
+
+        <Route
+          path="/createOrder"
+          element={<OrderForm wscontext={websocketRef.current} />}
+        />
+
+        <Route path="/orderList" element={<OrderList data={orders} />} />
+      </Routes>
     </Router>
   );
 }

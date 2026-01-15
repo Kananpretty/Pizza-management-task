@@ -3,54 +3,56 @@ import { Link } from "react-router-dom";
 
 const OrderHeader = () => {
   return (
-    <>
-      <Box>
-        <AppBar position="static" style={{ background: "white" }}>
-          <Toolbar>
-            <Box
-              size="small"
-              edge="start"
-              aria-label="menu"
-              sx={{ mr: 2 }}
-              onClick={() => <Link to="/" />}
-              component={Link}
-              to="/">
-              <img
-                src="/static/images/pizza-logo.jpg"
-                alt="logo"
-                width="50px"
-                height="50px"
-              />
-            </Box>
-            <Typography
-              variant="h3"
-              style={{ color: "black", flexGrow: 1, textAlign: "center" }}>
-              Kanan's Pizza
-            </Typography>
-            <MenuItem>
-              <Typography
-                style={{ textDecoration: "none", color: "black" }}
-                variant="h6"
-                component={Link}
-                to="/createOrder"
-                sx={{ flexGrow: 1 }}>
-                Create Order
-              </Typography>
-            </MenuItem>
-            <MenuItem>
-              <Typography
-                style={{ textDecoration: "none", color: "black" }}
-                variant="h6"
-                component={Link}
-                to="/orderList"
-                sx={{ flexGrow: 1 }}>
-                Order Listing
-              </Typography>
-            </MenuItem>
-          </Toolbar>
-        </AppBar>
-      </Box>
-    </>
+    <AppBar position="static" color="transparent" elevation={1}>
+      <Toolbar>
+        {/* Logo */}
+        <Box
+          component={Link}
+          to="/"
+          sx={{
+            mr: 2,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <Box
+            component="img"
+            src="/static/images/pizza-logo.jpg"
+            alt="logo"
+            sx={{ width: 50, height: 50 }}
+          />
+        </Box>
+
+        {/* Title */}
+        <Typography
+          variant="h4"
+          sx={{
+            flexGrow: 1,
+            textAlign: "center",
+            color: "text.primary",
+          }}
+        >
+          Kanan's Pizza
+        </Typography>
+
+        {/* Navigation */}
+        <MenuItem
+          component={Link}
+          to="/createOrder"
+          sx={{ textDecoration: "none", color: "text.primary" }}
+        >
+          <Typography variant="h6">Create Order</Typography>
+        </MenuItem>
+
+        <MenuItem
+          component={Link}
+          to="/orderList"
+          sx={{ textDecoration: "none", color: "text.primary" }}
+        >
+          <Typography variant="h6">Order Listing</Typography>
+        </MenuItem>
+      </Toolbar>
+    </AppBar>
   );
 };
 

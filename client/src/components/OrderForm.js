@@ -9,67 +9,69 @@ import {
   CardActions,
 } from "@mui/material";
 import PizzaMenu from "../PizzaMenu";
+import { useNavigate } from "react-router-dom";
 
-const OrderForm = (props) => {
-  const websocketRef = props.wscontext;
-  const orderPizza = (pizzaId) => {
-    const pizzaOrdered = PizzaMenu.filter((pizza) => pizza.pizzaId === pizzaId);
-    const pizzaData = {
-      pizzaId: pizzaOrdered[0].pizzaId,
-      pizzaType: pizzaOrdered[0].name,
-      pizzaToppings: pizzaOrdered[0].toppings,
+const OrderForm = ({ wscontext }) => {
+  const navigate = useNavigate();
+
+  const orderPizza = ({ pizzaId, name, toppings }) => {
+    const newOrder = {
+      message: "New_Order",
+      pizzaId,
+      pizzaType: name,
+      pizzaToppings: toppings,
     };
-    const newOrder = { message: "New_Order", ...pizzaData };
-    websocketRef.send(JSON.stringify(newOrder));
+
+    wscontext?.send(JSON.stringify(newOrder));
+    navigate("/orderList");
   };
 
   return (
-    <FormControl>
-      <Grid container spacing={3} style={{ padding: "15px" }}>
-        {PizzaMenu.map((pizzaItem) => {
-          return (
-            <Grid item xs={4} key={pizzaItem.pizzaId}>
-              <Card
-                sx={{ maxWidth: 400 }}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  flexDirection: "column",
-                }}>
-                <CardMedia
-                  sx={{ height: 200 }}
-                  image={pizzaItem.imgPath}
-                  title={pizzaItem.name}
-                />
-                <CardContent>
-                  <Typography gutterBottom variant="h5" component="div">
-                    {pizzaItem.name}
-                  </Typography>
-                </CardContent>
-                <CardContent>
-                  <Typography variant="body2" color="text.secondary">
-                    {pizzaItem.description}
-                  </Typography>
-                </CardContent>
-                <CardContent>
-                  <Typography variant="body2" color="text.secondary">
-                    {pizzaItem.toppings.toString().replaceAll(",", ", ")}
-                  </Typography>
-                </CardContent>
+    <FormControl fullWidth>
+      <Grid container spacing={3} sx={{ p: 2 }}>
+        {PizzaMenu.map((pizza) => (
+          <Grid item xs={12} sm={6} md={3} key={pizza.pizzaId}>
+            <Card
+              sx={{
+                maxWidth: 300,
+                m: "auto",
+                display: "flex",
+                flexDirection: "column",
+                height: "100%", // ensures card takes full height
+                boxShadow: 3,
+              }}
+            >
+              <CardMedia
+                component="img"
+                sx={{ height: 100 }}
+                image={pizza.imgPath}
+                title={pizza.name}
+              />
 
-                <CardActions>
-                  <Button
-                    size="large"
-                    onClick={() => {
-                      orderPizza(pizzaItem.pizzaId);
-                    }}>
-                    Order
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          );
-        })}
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography variant="h6">{pizza.name}</Typography>
+
+                <Typography variant="body2" color="text.secondary">
+                  {pizza.description}
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 1 }}
+                >
+                  {pizza.toppings.join(", ")}
+                </Typography>
+              </CardContent>
+
+              <CardActions>
+                <Button variant="contained" onClick={() => orderPizza(pizza)}>
+                  Order
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
     </FormControl>
   );

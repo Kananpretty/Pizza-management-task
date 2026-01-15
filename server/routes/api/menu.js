@@ -1,30 +1,41 @@
-//const processFunction = require("../../processOrder.js");
 const router = require("express").Router();
-//const uuid = require("uuid");
-let menu = require("../../order");
+const menu = require("../../order");
 
+// --- GET /api/menu ---
+// Returns all menu items
 router.get("/", (req, res) => {
   return res.json(menu);
 });
 
-// router.post("/", (req, res) => {
-//   const newOrder = {
-//     id: uuid.v4(),
-//     userName: req.body.userName,
-//     pizzaType: req.body.pizzaType,
-//     pizzaToppings: req.body.pizzaToppings,
-//     status: "New",
-//     orderTime: Date.now(),
-//   };
+/* --- POST /api/menu ---
+// Uncomment and use if you want to allow creating new orders
 
-//   if (!newOrder.userName || !newOrder.pizzaType || !newOrder.pizzaToppings) {
-//     return res.sendStatus(400);
-//   }
+const processFunction = require("../../processOrder");
+const { v4: uuidv4 } = require("uuid");
 
-//   orders.push(newOrder);
-//   processFunction();
+router.post("/", (req, res) => {
+  const { userName, pizzaType, pizzaToppings } = req.body;
 
-//   return res.json(orders);
-// });
+  if (!userName || !pizzaType || !pizzaToppings) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const newOrder = {
+    id: uuidv4(),
+    userName,
+    pizzaType,
+    pizzaToppings,
+    status: "New",
+    timeOrder: Date.now(),
+  };
+
+  menu.push(newOrder);
+
+  // Optionally start processing order
+  processFunction(newOrder);
+
+  return res.status(201).json(newOrder);
+});
+*/
 
 module.exports = router;
