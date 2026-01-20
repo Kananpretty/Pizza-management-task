@@ -7,12 +7,36 @@ import {
   CardContent,
   Typography,
   CardActions,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
-import PizzaMenu from "../PizzaMenu";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useEffect } from "react";
+import { fetchMenu } from "../api/menuService";
+import { useOrderHandler } from "../context/orderProvider";
 
-const OrderForm = ({ wscontext }) => {
+const OrderForm = () => {
   const navigate = useNavigate();
+  const { socket } = useOrderHandler();
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const getMenu = async () => {
+      try {
+        const data = await fetchMenu();
+        setMenuItems(data);
+      } catch (err) {
+        setError("Could not load the menu. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getMenu();
+  }, []);
 
   const orderPizza = ({ pizzaId, name, toppings }) => {
     const newOrder = {
@@ -21,15 +45,18 @@ const OrderForm = ({ wscontext }) => {
       pizzaType: name,
       pizzaToppings: toppings,
     };
-
-    wscontext?.send(JSON.stringify(newOrder));
+    console.log(socket);
+    socket?.send(JSON.stringify(newOrder));
     navigate("/orderList");
   };
+
+  if (loading) return <CircularProgress />;
+  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <FormControl fullWidth>
       <Grid container spacing={3} sx={{ p: 2 }}>
-        {PizzaMenu.map((pizza) => (
+        {menuItems.map((pizza) => (
           <Grid item xs={12} sm={6} md={3} key={pizza.pizzaId}>
             <Card
               sx={{

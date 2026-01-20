@@ -1,70 +1,29 @@
 const express = require("express");
-const cors = require("cors");
-const { v4: uuidv4 } = require("uuid");
+const http = require("http");
 const WebSocket = require("ws");
+const cors = require("cors");
+require("dotenv").config();
 
-const processOrder = require("./processOrder");
-const orders = require("./order");
+const { initWebSocket } = require("./socket/socketHandler");
+const menuRoutes = require("./routes/menuRoute");
+const orderRoutes = require("./routes/orderRoute");
 
 const app = express();
+const server = http.createServer(app);
+const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
-app.use("/api/menu", require("./routes/api/menu"));
+// Routes
+app.use("/api/menu", menuRoutes);
+app.use("/api/orders", orderRoutes);
 
-app.get("/", (req, res) => {
-  res.json(orders);
-});
+// Initialize WebSockets
+const wss = new WebSocket.Server({ server });
+initWebSocket(wss);
 
-app.listen(6000, () => {
-  console.log("HTTP server started on port 6000");
-});
-
-/* ---------------- WebSocket Server ---------------- */
-
-const wss = new WebSocket.Server({ port: 8080 });
-
-wss.on("connection", (ws) => {
-  console.log("WebSocket client connected");
-
-  ws.on("message", (message) => {
-    let payload;
-
-    try {
-      payload = JSON.parse(message);
-    } catch (err) {
-      console.error("Invalid JSON received");
-      return;
-    }
-
-    const { message: messageType } = payload;
-
-    if (messageType === "All_Orders") {
-      ws.send(
-        JSON.stringify({
-          message: "all orders",
-          orders,
-        })
-      );
-      return;
-    }
-
-    if (messageType === "New_Order") {
-      const newOrder = {
-        ...payload,
-        id: uuidv4(),
-        status: "New",
-        timeOrder: Date.now(),
-      };
-
-      orders.push(newOrder);
-      processOrder(newOrder, ws);
-    }
-  });
-
-  ws.on("close", () => {
-    console.log("WebSocket client disconnected");
-  });
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

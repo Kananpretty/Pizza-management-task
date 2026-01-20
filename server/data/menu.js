@@ -110,4 +110,4 @@ const PizzaMenu = [
   },
 ];
 
-export default PizzaMenu;
+module.exports = PizzaMenu;

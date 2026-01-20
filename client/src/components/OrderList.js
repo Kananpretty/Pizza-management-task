@@ -9,9 +9,10 @@ import {
   Typography,
   Box,
 } from "@mui/material";
+import { useOrderHandler } from "../context/orderProvider";
 
-const OrderList = ({ data = [] }) => {
-  const hasOrders = data.length > 0;
+const OrderList = () => {
+  const { orders } = useOrderHandler();
 
   return (
     <Box sx={{ p: 2 }}>
@@ -28,14 +29,15 @@ const OrderList = ({ data = [] }) => {
           </TableHead>
 
           <TableBody>
-            {hasOrders ? (
-              data.map(
+            {orders.length > 0 ? (
+              orders.map(
                 ({
                   id,
                   pizzaType,
                   pizzaToppings,
                   status,
-                  timeOrder,
+                  createdAt,
+                  updatedAt,
                   timeTaken,
                 }) => (
                   <TableRow
@@ -54,7 +56,7 @@ const OrderList = ({ data = [] }) => {
 
                     <TableCell align="right">
                       {status === "Done"
-                        ? `${Math.floor((timeTaken - timeOrder) / 1000)} sec`
+                        ? `${Math.floor((new Date(updatedAt) - new Date(createdAt)) / 1000)} sec`
                         : "-"}
                     </TableCell>
                   </TableRow>
