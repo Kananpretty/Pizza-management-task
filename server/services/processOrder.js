@@ -1,4 +1,4 @@
-const orders = require("../data/order");
+const Orders = require("../models/Orders");
 
 // Kitchen Resources
 let doughWorkers = 0;
@@ -9,19 +9,24 @@ let serversAvailable = 0;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- Update status & Broadcast to ALL clients ---
-function updateOrderStatus(orderId, status, wss) {
-  const targetOrder = orders.find((o) => o.id === orderId);
-  if (!targetOrder) return;
+async function updateOrderStatus(orderId, status, wss) {
+  const updatedOrder = await Orders.findByIdAndUpdate(
+    orderId,
+    { status: status, updatedAt: new Date().toISOString() },
+    { new: true, runValidators: true }
+  );
 
-  targetOrder.status = status;
-  targetOrder.updatedAt = new Date().toISOString();
+  if (!updatedOrder) return;
 
   // BROADCAST: Send the update to every single person connected
-  const payload = JSON.stringify({ message: "order_updated", orders });
+  const payload = JSON.stringify({ message: "order_updated", updatedOrder });
 
   wss.clients.forEach((client) => {
-    if (client.readyState === 1) {
-      // 1 = WebSocket.OPEN
+    if (
+      client.readyState === WebSocket.OPEN &&
+      (client.userRole === "admin" ||
+        client.userId === updatedOrder.customerId.toString())
+    ) {
       client.send(payload);
     }
   });
@@ -65,19 +70,16 @@ async function servePizza(orderId, wss) {
 }
 
 // --- Main Process ---
-async function processOrder(order, wss) {
-  const { id, pizzaToppings } = order;
-  console.log(
-    `Order ${id} received. Starting processing...${JSON.stringify(order)}`
-  );
+async function processOrder(wss, orderId, toppings) {
+  console.log(`Order ${orderId} received. Starting processing...`);
 
-  await doughChefPreparation(id, wss);
-  await toppingChefPreparation(id, wss, pizzaToppings);
-  await cookPizza(id, wss);
-  await servePizza(id, wss);
+  await doughChefPreparation(orderId, wss);
+  await toppingChefPreparation(orderId, wss, toppings);
+  await cookPizza(orderId, wss);
+  await servePizza(orderId, wss);
 
-  updateOrderStatus(id, "Done", wss);
-  console.log(`Order ${id} is complete`);
+  updateOrderStatus(orderId, "Done", wss);
+  console.log(`Order ${orderId} is complete`);
 }
 
 module.exports = processOrder;

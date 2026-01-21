@@ -1,11 +1,11 @@
 const express = require("express");
+const Pizza = require("../models/Pizza");
 const router = express.Router();
-const menuData = require("../data/menu");
 
 // GET /api/menu
-router.get("/", (req, res) => {
-  console.log(menuData);
-  res.json(menuData);
+router.get("/", async (req, res) => {
+  const menuItems = await Pizza.find();
+  res.status(200).json(menuItems);
 });
 
 module.exports = router;

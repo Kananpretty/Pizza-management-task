@@ -1,16 +1,21 @@
 const express = require("express");
+const Orders = require("../models/Orders");
 const router = express.Router();
-const orders = require("../data/order"); // Path to your centralized data
 
 /**
  * @route   GET /api/orders
  * @desc    Fetch all current orders
  * @access  Public
  */
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    // We send a 200 status explicitly for clarity
-    res.status(200).json(orders);
+    if (req.user && req.user.role === "admin") {
+      const allOrders = await Orders.find().populate("customerId", "username");
+      return res.status(200).json(allOrders);
+    } else {
+      const myOrders = await Orders.find({ customerId: req.user.id });
+      return res.status(200).json(myOrders);
+    }
   } catch (error) {
     res
       .status(500)
