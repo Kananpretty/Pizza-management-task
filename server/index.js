@@ -19,7 +19,15 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cookieParser());
-app.use(cors());
+const corsOptions = {
+  // Use the env variable, but fall back to localhost if it's missing
+  origin: process.env.FRONTEND_URL,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true, // Required if you are sending cookies (refresh tokens)
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
@@ -28,7 +36,21 @@ app.use("/api/orders", protect, orderRoutes);
 app.use("/api/auth", authRoutes);
 
 // Initialize WebSockets
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({
+  server,
+  verifyClient: (info, callback) => {
+    const origin = info.origin;
+    const allowedOrigin = process.env.FRONTEND_URL;
+
+    // Check if the request is coming from your React app
+    if (origin !== allowedOrigin) {
+      console.log("Blocked connection from unauthorized origin:", origin);
+      return callback(false, 401, "Unauthorized Origin");
+    }
+
+    callback(true);
+  },
+});
 connectDB();
 initWebSocket(wss);
 

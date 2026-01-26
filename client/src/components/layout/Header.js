@@ -1,7 +1,10 @@
-import { AppBar, Box, Toolbar, Typography, MenuItem } from "@mui/material";
+import { AppBar, Box, Toolbar, Typography, Button } from "@mui/material";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { Link as RouterLink } from "react-router-dom";
 
 const OrderHeader = () => {
+  const { user, logout } = useAuth();
   return (
     <AppBar position="static" color="transparent" elevation={1}>
       <Toolbar>
@@ -36,21 +39,21 @@ const OrderHeader = () => {
         </Typography>
 
         {/* Navigation */}
-        <MenuItem
-          component={Link}
-          to="/createOrder"
-          sx={{ textDecoration: "none", color: "text.primary" }}
-        >
-          <Typography variant="h6">Create Order</Typography>
-        </MenuItem>
-
-        <MenuItem
-          component={Link}
-          to="/orderList"
-          sx={{ textDecoration: "none", color: "text.primary" }}
-        >
-          <Typography variant="h6">Order Listing</Typography>
-        </MenuItem>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          {user && (
+            <>
+              <Button component={RouterLink} to="/createOrder" color="inherit">
+                Create Order
+              </Button>
+              <Button component={RouterLink} to="/orderList" color="inherit">
+                Orders List
+              </Button>
+              <Button onClick={logout} color="error" variant="outlined">
+                Logout
+              </Button>
+            </>
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   );

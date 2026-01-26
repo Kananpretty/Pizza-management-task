@@ -16,6 +16,16 @@ const protect = (req, res, next) => {
 
       return next(); // Move to the next middleware or route
     } catch (error) {
+      // 1. Log the error for the developer (you), but don't let it crash the app
+      console.error("JWT Verification Error:", error.name);
+
+      // 2. Give specific feedback to the frontend
+      if (error.name === "TokenExpiredError") {
+        return res
+          .status(401)
+          .json({ message: "Token expired", code: "TOKEN_EXPIRED" });
+      }
+
       return res.status(401).json({ message: "Not authorized, token failed" });
     }
   }

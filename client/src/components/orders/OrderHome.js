@@ -7,8 +7,11 @@ import {
   CardMedia,
 } from "@mui/material";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const OrderHome = () => {
+  const { user } = useAuth();
+
   return (
     <Box
       sx={{
@@ -56,25 +59,38 @@ const OrderHome = () => {
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              <Button
-                size="large"
-                variant="contained"
-                component={Link}
-                to="/createOrder"
-                sx={{ flex: { xs: "1 1 100%", sm: "1" }, py: 1.5 }}
-              >
-                New Order
-              </Button>
-
-              <Button
-                size="large"
-                variant="outlined"
-                component={Link}
-                to="/orderList"
-                sx={{ flex: { xs: "1 1 100%", sm: "1" }, py: 1.5 }}
-              >
-                Order Status
-              </Button>
+              {user ? (
+                <>
+                  <Button
+                    size="large"
+                    variant="contained"
+                    component={Link}
+                    to="/createOrder"
+                    sx={{ flex: { xs: "1 1 100%", sm: "1" }, py: 1.5 }}
+                  >
+                    New Order
+                  </Button>
+                  <Button
+                    size="large"
+                    variant="outlined"
+                    component={Link}
+                    to="/orderList"
+                    sx={{ flex: { xs: "1 1 100%", sm: "1" }, py: 1.5 }}
+                  >
+                    Order Status
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="large"
+                  variant="contained"
+                  component={Link}
+                  to="/createOrder"
+                  sx={{ flex: { xs: "1 1 100%", sm: "1" }, py: 1.5 }}
+                >
+                  Login
+                </Button>
+              )}
             </Box>
           </CardContent>
         </Box>
@@ -82,12 +98,12 @@ const OrderHome = () => {
         {/* Image */}
         <CardMedia
           component="img"
-          image="/static/images/margherita.jpg"
+          image="https://res.cloudinary.com/dcfpnasgn/image/upload/v1768898049/margherita_mliv4j.jpg"
           alt="Margherita Pizza"
           sx={{
-            width: { xs: "100%", sm: "45%" }, // Percentage-based width is more dynamic
-            height: { xs: "250px", sm: "100%" }, // Fills card height on desktop
-            objectFit: "cover", // Crops the image to fill the space without scrollbars
+            width: { xs: "100%", sm: "45%" },
+            height: { xs: "250px", sm: "100%" },
+            objectFit: "cover",
           }}
         />
       </Card>

@@ -7,7 +7,7 @@ const crypto = require("crypto");
 
 router.post("/register", async (req, res) => {
   try {
-    const { username, password, emailId, role } = req.body;
+    const { username, password, emailId } = req.body;
 
     // 1. Check if user already exists
     const userExists = await User.findOne({ emailId });
@@ -30,7 +30,7 @@ router.post("/register", async (req, res) => {
       username,
       password: hashedPassword,
       emailId,
-      role: role || "customer",
+      role: "customer",
     });
 
     res.status(201).json({ message: "User registered successfully" });
@@ -54,7 +54,7 @@ router.post("/login", async (req, res) => {
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       {
-        expiresIn: "1m",
+        expiresIn: "15m",
       }
     );
 

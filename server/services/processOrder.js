@@ -14,7 +14,9 @@ async function updateOrderStatus(orderId, status, wss) {
     orderId,
     { status: status, updatedAt: new Date().toISOString() },
     { new: true, runValidators: true }
-  );
+  )
+    .populate("customerId", "username") // Joins user name
+    .populate("pizzaId", "name toppings"); // Joins pizza details
 
   if (!updatedOrder) return;
 
@@ -25,7 +27,7 @@ async function updateOrderStatus(orderId, status, wss) {
     if (
       client.readyState === WebSocket.OPEN &&
       (client.userRole === "admin" ||
-        client.userId === updatedOrder.customerId.toString())
+        client.userId === updatedOrder.customerId._id.toString())
     ) {
       client.send(payload);
     }

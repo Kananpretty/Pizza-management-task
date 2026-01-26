@@ -1,6 +1,5 @@
 import Button from "@mui/material/Button";
 import {
-  FormControl,
   Grid,
   Card,
   CardMedia,
@@ -9,12 +8,13 @@ import {
   CardActions,
   CircularProgress,
   Alert,
+  Container,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useEffect } from "react";
-import { fetchMenu } from "../api/menuService";
-import { useOrderHandler } from "../context/orderProvider";
+import { fetchMenu } from "../../services/menuService";
+import { useOrderHandler } from "../../context/orderProvider";
 
 const OrderForm = () => {
   const navigate = useNavigate();
@@ -38,14 +38,12 @@ const OrderForm = () => {
     getMenu();
   }, []);
 
-  const orderPizza = ({ pizzaId, name, toppings }) => {
+  const orderPizza = (pizzaId) => {
     const newOrder = {
       message: "New_Order",
       pizzaId,
-      pizzaType: name,
-      pizzaToppings: toppings,
     };
-    console.log(socket);
+
     socket?.send(JSON.stringify(newOrder));
     navigate("/orderList");
   };
@@ -54,10 +52,10 @@ const OrderForm = () => {
   if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <FormControl fullWidth>
+    <Container fullWidth>
       <Grid container spacing={3} sx={{ p: 2 }}>
         {menuItems.map((pizza) => (
-          <Grid item xs={12} sm={6} md={3} key={pizza.pizzaId}>
+          <Grid item xs={12} sm={6} md={3} key={pizza._id}>
             <Card
               sx={{
                 maxWidth: 300,
@@ -92,7 +90,10 @@ const OrderForm = () => {
               </CardContent>
 
               <CardActions>
-                <Button variant="contained" onClick={() => orderPizza(pizza)}>
+                <Button
+                  variant="contained"
+                  onClick={() => orderPizza(pizza._id)}
+                >
                   Order
                 </Button>
               </CardActions>
@@ -100,7 +101,7 @@ const OrderForm = () => {
           </Grid>
         ))}
       </Grid>
-    </FormControl>
+    </Container>
   );
 };
 

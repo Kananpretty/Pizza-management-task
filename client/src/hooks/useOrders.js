@@ -1,72 +1,87 @@
 import { useState, useEffect, useRef } from "react";
-
-const getUrl = (type) => {
-  const isProduction = window.location.hostname !== "localhost";
-
-  // In production (Render), your server URL will be something like your-app.onrender.com
-  // If your React app and Server are on different domains, replace 'window.location.host'
-  // with your actual Render backend URL string.
-  const host = isProduction
-    ? "your-pizza-server.onrender.com"
-    : "localhost:5000";
-  const protocol =
-    type === "socket"
-      ? isProduction
-        ? "wss://"
-        : "ws://"
-      : isProduction
-      ? "https://"
-      : "http://";
-
-  return `${protocol}${host}`;
-};
+import { fetchOrders } from "../services/orderService";
+import { useAuth } from "../context/AuthContext";
+import api from "../api/api";
 
 export const useOrders = () => {
+  const { user, logout } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reconnectCount, setReconnectCount] = useState(0);
   const ws = useRef(null);
 
   useEffect(() => {
-    // 1. Initial HTTP Fetch
+    if (!user) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
     const getInitialOrders = async () => {
-      const apiUrl = getUrl("API");
       try {
-        const response = await fetch(`${apiUrl}/api/orders`);
-        const data = await response.json();
+        const data = await fetchOrders();
         setOrders(data);
       } catch (err) {
-        console.error("HTTP Fetch Error:", err);
+        setError("Failed to sync orders.");
       } finally {
         setLoading(false);
       }
     };
-
     getInitialOrders();
 
-    // 2. WebSocket Connection
-    const socketUrl = getUrl("socket");
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const socketUrl = `${process.env.REACT_APP_WS_URL}?token=${token}`;
     ws.current = new WebSocket(socketUrl);
 
-    ws.current.onopen = () => {
-      console.log("WS Connected");
-      ws.current.send(JSON.stringify({ message: "All_Orders" }));
-    };
+    ws.current.onopen = () => console.log("✅ WS Connected");
 
     ws.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.message === "order_updated" || data.message === "all orders") {
-        const updatedOrders = data.orders.default || data.orders;
-        setOrders(updatedOrders);
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WS Message Received:", data);
+
+        if (
+          data.type === "ORDER_CONFIRMED" ||
+          data.type === "NEW_ORDER_RECEIVED"
+        ) {
+          setOrders((prev) => [data.order, ...prev]);
+        }
+
+        if (data.message === "order_updated") {
+          setOrders((prev) =>
+            prev.map((o) => (o._id === data.order._id ? data.order : o))
+          );
+        }
+      } catch (err) {
+        console.error("WebSocket Parse Error:", err);
       }
     };
 
-    ws.current.onclose = () => console.log("WS Disconnected");
+    ws.current.onclose = async (event) => {
+      console.log("WS Closed code:", event.code);
 
-    // Cleanup on unmount
+      // Handle Auth Failure (Expired Token)
+      if (event.code === 4001 || event.code === 1008) {
+        try {
+          const res = await api.post("/auth/refresh");
+          const newToken = res.data.token;
+          localStorage.setItem("token", newToken);
+
+          console.log("🔄 Token refreshed. Triggering reconnect...");
+          setReconnectCount((prev) => prev + 1);
+        } catch (refreshError) {
+          logout();
+        }
+      }
+    };
+
     return () => {
       if (ws.current) ws.current.close();
     };
-  }, []);
+  }, [user, logout, reconnectCount]);
 
-  return { orders, loading, socket: ws.current };
+  return { orders, loading, socket: ws.current, error };
 };

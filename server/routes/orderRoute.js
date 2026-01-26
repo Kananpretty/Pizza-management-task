@@ -10,10 +10,14 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     if (req.user && req.user.role === "admin") {
-      const allOrders = await Orders.find().populate("customerId", "username");
+      const allOrders = await Orders.find()
+        .populate("customerId", "username")
+        .populate("pizzaId", "name toppings");
       return res.status(200).json(allOrders);
     } else {
-      const myOrders = await Orders.find({ customerId: req.user.id });
+      const myOrders = await Orders.find({ customerId: req.user.id })
+        .populate("customerId", "username")
+        .populate("pizzaId", "name toppings");
       return res.status(200).json(myOrders);
     }
   } catch (error) {
